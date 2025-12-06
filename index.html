@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <title>IKA – Links</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.bunny.net">
+  <link href="https://fonts.bunny.net/css?family=space-grotesk:400,500,600" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #050505;
+      --fg: #f5f5f5;
+      --muted: #a0a0a0;
+      --border: #2a2a2a;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    a { color: inherit; text-decoration: none; }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #1b1b1b 0, #050505 55%);
+      color: var(--fg);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 24px;
+    }
+
+    /* HAVAZÁS CANVAS */
+    #snowCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* ---------------- ENTER SCREEN ---------------- */
+    .enter-overlay {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      transition: opacity 0.65s ease-out;
+    }
+    .enter-overlay--hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .enter-button {
+      border: 1px solid rgba(255,255,255,0.4);
+      background: transparent;
+      color: #fff;
+      padding: 14px 32px;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      font-size: 0.8rem;
+      cursor: pointer;
+      border-radius: 999px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .enter-button::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(255,255,255,0.18), transparent 40%, rgba(255,255,255,0.18));
+      opacity: 0;
+      transform: translateX(-40%);
+      transition: 0.4s ease-out;
+    }
+    .enter-button:hover::before {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* ---------------- CARD ---------------- */
+    .frame {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: radial-gradient(circle at top left, rgba(255,255,255,0.08), transparent 55%),
+                  radial-gradient(circle at bottom right, rgba(0,0,0,0.9), #000 60%);
+      box-shadow: 0 18px 45px rgba(0,0,0,0.8);
+      padding: 24px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      opacity: 0;
+      transform: translateY(12px) scale(0.96);
+      z-index: 10;
+    }
+
+    .frame--visible {
+      animation: enter 0.8s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+
+    @keyframes enter {
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* ---------------- TOP ---------------- */
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* CD-szerű, forgó profilkép */
+    .avatar-wrap {
+      width: 72px;
+      height: 72px;
+      border-radius: 999px;
+      padding: 3px;
+      background: radial-gradient(circle at 30% 0%, #ffffff 0, #444 35%, #000 70%, #888 100%);
+      box-shadow: 0 0 18px rgba(0,0,0,0.7);
+    }
+
+    .avatar-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      overflow: hidden;
+      animation: cdSpin 18s linear infinite;
+      transform-origin: center center;
+    }
+
+    .avatar-inner img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform-origin: center center;
+    }
+
+    /* kis „lyuk” a CD közepén */
+    .avatar-inner::after {
+      content: "";
+      position: absolute;
+      inset: 32%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,0,0,0.85) 0, transparent 70%);
+      mix-blend-mode: multiply;
+      pointer-events: none;
+    }
+
+    @keyframes cdSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    .name {
+      font-size: 1.25rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      overflow: hidden;
+    }
+    .name span {
+      display: inline-block;
+      transform: translateY(110%);
+      animation: slide 0.9s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    @keyframes slide { to { transform: translateY(0); } }
+
+    .tagline {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+    }
+
+    /* --- ONLINE pill: javított igazítás --- */
+    .status-pill {
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 4px 12px;
+      font-size: 0.65rem;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-transform: uppercase;
+      line-height: 1;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #ffffff;
+      border-radius: 50%;
+      animation: pulse 1.4s infinite ease-out;
+      transform: translateY(0.5px); /* finom lejjebb tolás */
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      60% { transform: scale(1.7); opacity: 0; }
+      100% { opacity: 0; }
+    }
+
+    /* ---------------- LINKS ---------------- */
+    .links { display: flex; flex-direction: column; gap: 10px; }
+
+    .link-row {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.8);
+      border-radius: 999px;
+      overflow: hidden;
+      transition: transform 0.22s ease-out, box-shadow 0.22s ease-out, border-color 0.22s ease-out, background 0.22s ease-out;
+      position: relative;
+    }
+
+    .link-row::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(255,255,255,0.12), transparent 40%, rgba(255,255,255,0.12));
+      opacity: 0;
+      transform: translateX(-40%);
+      transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+      pointer-events: none;
+    }
+
+    .link-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 11px 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .link-left span {
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: white;
+      font-size: 0.8rem;
+      transition: letter-spacing 0.18s ease-out, transform 0.18s ease-out, opacity 0.18s ease-out;
+    }
+
+    .link-arrow {
+      font-size: 0.9rem;
+      transition: transform 0.18s ease-out, opacity 0.18s ease-out;
+    }
+
+    /* hover – „feljövő” gomb effekt */
+    .link-row:hover {
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.75);
+      border-color: rgba(255,255,255,0.25);
+      background: rgba(0,0,0,0.95);
+    }
+    .link-row:hover::before {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    .link-row:hover .link-left span {
+      letter-spacing: 0.26em;
+      transform: translateY(-1px);
+    }
+    .link-row:hover .link-arrow {
+      transform: translateX(3px);
+    }
+
+    /* ---------------- AUDIO CONTROLS ---------------- */
+    .audio-controls {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 50;
+      /* kezdetben láthatatlan */
+      opacity: 0;
+      transform: translateY(-20px);
+      pointer-events: none;
+      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    }
+
+    .audio-controls--visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .volume-toggle {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(0,0,0,0.85);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: 0.18s;
+    }
+
+    .volume-toggle:hover { transform: translateY(-1px); }
+
+    .volume-toggle svg { width: 18px; height: 18px; fill: white; }
+
+    .volume-slider {
+      width: 110px;
+      accent-color: white;
+      cursor: pointer;
+    }
+
+    @media (max-width: 480px) {
+      .avatar-wrap { width: 64px; height: 64px; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="snowCanvas"></canvas>
+
+<!-- ENTER SCREEN -->
+<div class="enter-overlay" id="enterOverlay">
+  <button class="enter-button" id="enterButton"><span>[ Enter ]</span></button>
+</div>
+
+<!-- AUDIO ELEMENT -->
+<audio id="bgMusic" loop>
+  <source src="music.mp3" type="audio/mpeg">
+</audio>
+
+<!-- AUDIO CONTROLLERS -->
+<div class="audio-controls">
+  <button class="volume-toggle" id="volumeToggle">
+    <svg viewBox="0 0 24 24">
+      <path d="M4 9v6h3l5 5V4L7 9H4z"/>
+      <path id="muteX" d="M16 9l4 4m0-4l-4 4" stroke="white" stroke-width="2" stroke-linecap="round" style="opacity:0"/>
+    </svg>
+  </button>
+  <input type="range" min="0" max="1" step="0.01" value="0.7" class="volume-slider" id="volumeSlider">
+</div>
+
+<main class="frame" id="card">
+  <section class="top">
+    <div class="avatar-wrap">
+      <div class="avatar-inner">
+        <!-- saját profilkép -->
+        <img src="ika-avatar.jpg" alt="IKA">
+      </div>
+    </div>
+
+    <div>
+      <div class="name"><span>IK</span></div>
+      <div class="tagline">Artist / Visual</div>
+    </div>
+
+    <div class="status-pill">
+      <span class="status-dot"></span> Online
+    </div>
+  </section>
+
+  <section class="links">
+    <a class="link-row" href="https://www.instagram.com/iktunfckbl/" target="_blank" rel="noreferrer">
+      <div class="link-inner">
+        <div class="link-left"><span>Instagram</span></div>
+        <div class="link-arrow">↗</div>
+      </div>
+    </a>
+    <a class="link-row" href="https://open.spotify.com/artist/10BFDxHTKjN8tL3tDikOVc?si=gcXPIWc1QJ-Z8z1jzRc4ZQ" target="_blank" rel="noreferrer">
+      <div class="link-inner">
+        <div class="link-left"><span>Spotify</span></div>
+        <div class="link-arrow">↗</div>
+      </div>
+    </a>
+    <a class="link-row" href="https://youtube.com/@yourchannel" target="_blank" rel="noreferrer">
+      <div class="link-inner">
+        <div class="link-left"><span>YouTube</span></div>
+        <div class="link-arrow">↗</div>
+      </div>
+    </a>
+    <a class="link-row" href="mailto:ikceges@gmail.com">
+      <div class="link-inner">
+        <div class="link-left"><span>Contact</span></div>
+        <div class="link-arrow">↗</div>
+      </div>
+    </a>
+  </section>
+</main>
+
+<!-- SCRIPT: ENTER + AUDIO + HAVAZÁS -->
+<script>
+/* ---------------- ENTER + AUDIO ---------------- */
+const enterOverlay = document.getElementById("enterOverlay");
+const enterButton = document.getElementById("enterButton");
+const card = document.getElementById("card");
+const bgMusic = document.getElementById("bgMusic");
+const volumeSlider = document.getElementById("volumeSlider");
+const volumeToggle = document.getElementById("volumeToggle");
+const muteX = document.getElementById("muteX");
+const audioControls = document.querySelector(".audio-controls");
+
+enterButton.addEventListener("click", () => {
+  enterOverlay.classList.add("enter-overlay--hidden");
+  setTimeout(() => card.classList.add("frame--visible"), 100);
+
+  // zene indul
+  bgMusic.volume = volumeSlider.value;
+  bgMusic.play().catch(() => {});
+
+  // hangerő UI animált megjelenése
+  setTimeout(() => {
+    audioControls.classList.add("audio-controls--visible");
+  }, 600);
+});
+
+volumeSlider.addEventListener("input", e => {
+  bgMusic.volume = e.target.value;
+  if (bgMusic.muted && e.target.value > 0) {
+    bgMusic.muted = false;
+    muteX.style.opacity = 0;
+  }
+});
+
+volumeToggle.addEventListener("click", () => {
+  bgMusic.muted = !bgMusic.muted;
+  muteX.style.opacity = bgMusic.muted ? 1 : 0;
+});
+
+/* ---------------- HAVAZÁS ---------------- */
+const canvas = document.getElementById('snowCanvas');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const flakes = [];
+const maxFlakes = 140;
+
+for (let i = 0; i < maxFlakes; i++) {
+  flakes.push({
+    x: Math.random() * W,
+    y: Math.random() * H,
+    r: Math.random() * 3 + 1,
+    vx: Math.random() * 0.6 - 0.3,
+    vy: Math.random() * 2 + 0.5
+  });
+}
+
+function drawSnow() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "rgba(255,255,255,0.8)";
+  ctx.beginPath();
+
+  flakes.forEach(f => {
+    ctx.moveTo(f.x, f.y);
+    ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+  });
+
+  ctx.fill();
+  updateSnow();
+}
+
+function updateSnow() {
+  flakes.forEach(f => {
+    f.y += f.vy;
+    f.x += f.vx;
+    if (f.y > H) { f.y = -5; f.x = Math.random() * W; }
+    if (f.x > W || f.x < 0) f.x = Math.random() * W;
+  });
+}
+
+(function animate() {
+  drawSnow();
+  requestAnimationFrame(animate);
+})();
+</script>
+
+</body>
+</html>
